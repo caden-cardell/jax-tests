@@ -24,17 +24,19 @@ def worker_process(process_id, num_processes):
     @jax.jit
     def matmul_reference(a, b):
         c = jnp.dot(a, b)
-        c_gathered = jax.lax.with_sharding_constraint(c, NamedSharding(mesh, P(None, None)))
-        return c_gathered
+        return c
     
     c_ref = matmul_reference(a, b)
 
     # Inspect local shard on each process:
-    print(f"Process {process_id}: local shard: {a.addressable_shards[0].data} {b.addressable_shards[0].data}\n")
+    print(f"Process {process_id}: local a shard: {a.addressable_shards[0].data}, local b shard: {b.addressable_shards[0].data}, local c_ref shard: {c_ref.addressable_shards[0].data}")
 
-    # Explicitly transfer to host/device 0 after computation:
+    # Explicitly gather
+    c_gathered = jax.lax.with_sharding_constraint(c_ref, NamedSharding(mesh, P(None, None)))
+
+    # if host then print so we only get one message
     if process_id == 0:
-        c_host = np.array(c_ref)
+        c_host = np.array(c_gathered)
         print(c_host)
 
     jax.distributed.shutdown()
