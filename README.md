@@ -52,8 +52,7 @@ When using all 8 GPUs on a `gpu_8x_a100_80gb_sxm4` instance the calculation succ
 $ python multiple_gpus.py
 ```
 ```
-Available devices: [cuda(id=0) cuda(id=1) cuda(id=2) cuda(id=3) cuda(id=4) cuda(id=5)
- cuda(id=6) cuda(id=7)]
+Available devices: [cuda(id=0) cuda(id=1) cuda(id=2) cuda(id=3) cuda(id=4) cuda(id=5) cuda(id=6) cuda(id=7)]
 Created Mesh: Mesh('x': 2, 'y': 4)
 2025-03-11 02:53:01.106732: W external/xla/xla/service/hlo_rematerialization.cc:3005] Can't reduce memory use below 41.19GiB (44223270085 bytes) by rematerialization; only reduced to 48.00GiB (51539607572 bytes), down from 48.00GiB (51539607572 bytes) originally
 2025-03-11 02:53:14.062404: W external/xla/xla/service/hlo_rematerialization.cc:3005] Can't reduce memory use below 39.29GiB (42183160627 bytes) by rematerialization; only reduced to 48.00GiB (51539607568 bytes), down from 48.00GiB (51539607568 bytes) originally
