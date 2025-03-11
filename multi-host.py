@@ -13,13 +13,13 @@ def worker_process(process_id, num_processes):
     )
 
     devices = np.array(jax.devices())
-    mesh = Mesh(devices.reshape(num_processes), ('x',))
+    mesh = Mesh(devices.reshape(2, 2), ('x', 'y'))
 
-    a = jnp.arange(8 * 16.).reshape(8, 16)
-    b = jnp.arange(16 * 4.).reshape(16, 4)
+    a = jnp.arange(2 * 2.).reshape(2, 2)
+    b = jnp.arange(2 * 2.).reshape(2, 2) * -1
 
-    a = jax.device_put(a, NamedSharding(mesh, P('x', None)))
-    b = jax.device_put(b, NamedSharding(mesh, P('x', None)))
+    a = jax.device_put(a, NamedSharding(mesh, P('x', 'y')))
+    b = jax.device_put(b, NamedSharding(mesh, P('x', 'y')))
 
     @jax.jit
     def matmul_reference(a, b):
@@ -28,6 +28,9 @@ def worker_process(process_id, num_processes):
         return c_gathered
     
     c_ref = matmul_reference(a, b)
+
+    # Inspect local shard on each process:
+    print(f"Process {process_id}: local shard: {a.addressable_shards[0].data} {b.addressable_shards[0].data}\n")
 
     # Explicitly transfer to host/device 0 after computation:
     if process_id == 0:
