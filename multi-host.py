@@ -33,6 +33,7 @@ def worker_process(process_id, num_processes):
 
     # Explicitly gather
     c_gathered = jax.lax.with_sharding_constraint(c_ref, NamedSharding(mesh, P(None, None)))
+    # print(f"Process {process_id}: local c_gathered shard: {c_gathered.addressable_shards[0].data}")
 
     # if host then print so we only get one message
     if process_id == 0:
