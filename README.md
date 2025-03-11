@@ -12,13 +12,26 @@ pip install -r requirements.txt
 ## Local Multi-host Test
 This test shows that shards can be spread across multiple hosts. This should enable expanding past a single host and its limit on a maximum number of GPUs.
 ```
-python3 local-multi-host.py
+$ python3 local-multi-host.py
+```
+```
+Process 1: Local shard of matrix_a: [[2.]], Local shard of matrix_b: [[13.]], Local shard of result_matrix: [[51.]]
+Process 3: Local shard of matrix_a: [[5.]], Local shard of matrix_b: [[19.]], Local shard of result_matrix: [[134.]]
+Process 0: Local shard of matrix_a: [[1.]], Local shard of matrix_b: [[11.]], Local shard of result_matrix: [[45.]]
+Process 2: Local shard of matrix_a: [[3.]], Local shard of matrix_b: [[17.]], Local shard of result_matrix: [[118.]]
+Process 0: Local shard of result_gathered:
+[[ 45.  51.]
+ [118. 134.]]
+Process 3: Shutdown completed
+Process 1: Shutdown completed
+Process 2: Shutdown completed
+Process 0: Shutdown completed
 ```
 
 ## Multiple GPUs Test
 When run on a `gpu_8x_a100_80gb_sxm4` GPU instance on Lambda Labs a single GPU runs out of resources.
 ```
-python single_gpu.py
+$ python single_gpu.py
 ```
 ```
 Available devices: [cuda(id=0)]
@@ -36,7 +49,7 @@ jaxlib.xla_extension.XlaRuntimeError: RESOURCE_EXHAUSTED: Out of memory while tr
 ```
 When using all 8 GPUs on a `gpu_8x_a100_80gb_sxm4` instance the calculation succeeds.
 ```
-python multiple_gpus.py
+$ python multiple_gpus.py
 ```
 ```
 Available devices: [cuda(id=0) cuda(id=1) cuda(id=2) cuda(id=3) cuda(id=4) cuda(id=5)
