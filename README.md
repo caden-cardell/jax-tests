@@ -5,5 +5,10 @@
 python3 -m venv .venv
 . .venv/bin/activate
 pip install --upgrade pip
-pip install --upgrade jax numpy
+pip install -r requirements.txt
+```
+
+## Local Multi-host Test
+```
+python3 local-multi-host.py
 ```
