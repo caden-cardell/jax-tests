@@ -5,56 +5,86 @@ import jax.numpy as jnp
 from jax.sharding import NamedSharding, Mesh, PartitionSpec as P
 import numpy as np
 
-def worker_process(process_id, num_processes):
+verbose = False
+
+def distributed_worker(process_id, total_processes):
+    """
+    Initializes JAX distributed environment, performs matrix multiplication
+    on sharded arrays, and prints local shard data for debugging.
+
+    Args:
+        process_id (int): The unique ID of the current process.
+        total_processes (int): Total number of distributed processes.
+    """
     jax.distributed.initialize(
         coordinator_address="localhost:1234",
-        num_processes=num_processes,
+        num_processes=total_processes,
         process_id=process_id,
     )
 
     devices = np.array(jax.devices())
     mesh = Mesh(devices.reshape(2, 2), ('x', 'y'))
 
-    a = jnp.arange(2 * 2.).reshape(2, 2)
-    b = jnp.arange(2 * 2.).reshape(2, 2) * -1
+    matrix_a = jnp.array([1, 2, 3, 5], dtype=jnp.float32).reshape(2, 2)
+    matrix_b = jnp.array([11, 13, 17, 19], dtype=jnp.float32).reshape(2, 2)
 
-    a = jax.device_put(a, NamedSharding(mesh, P('x', 'y')))
-    b = jax.device_put(b, NamedSharding(mesh, P('x', 'y')))
+    matrix_a = jax.device_put(matrix_a, NamedSharding(mesh, P('x', 'y')))
+    matrix_b = jax.device_put(matrix_b, NamedSharding(mesh, P('x', 'y')))
 
     @jax.jit
-    def matmul_reference(a, b):
-        c = jnp.dot(a, b)
-        return c
-    
-    c_ref = matmul_reference(a, b)
+    def multiply_matrices(a, b):
+        return jnp.dot(a, b)
 
-    # Inspect local shard on each process:
-    print(f"Process {process_id}: local a shard: {a.addressable_shards[0].data}, local b shard: {b.addressable_shards[0].data}, local c_ref shard: {c_ref.addressable_shards[0].data}")
+    result_matrix = multiply_matrices(matrix_a, matrix_b)
 
-    # Explicitly gather
-    c_gathered = jax.lax.with_sharding_constraint(c_ref, NamedSharding(mesh, P(None, None)))
-    # print(f"Process {process_id}: local c_gathered shard: {c_gathered.addressable_shards[0].data}")
+    # Print local shard data for debugging purposes.
+    print(
+        f"Process {process_id}: "
+        f"Local shard of matrix_a: {matrix_a.addressable_shards[0].data}, "
+        f"Local shard of matrix_b: {matrix_b.addressable_shards[0].data}, "
+        f"Local shard of result_matrix: {result_matrix.addressable_shards[0].data}"
+    )
 
-    # if host then print so we only get one message
+    # Gather result explicitly
+    result_gathered = jax.lax.with_sharding_constraint(
+        result_matrix, NamedSharding(mesh, P(None, None))
+    )
+
+    # Only the host process prints the fully gathered result
     if process_id == 0:
-        c_host = np.array(c_gathered)
-        print(c_host)
+        print(
+            f"Process {process_id}: "
+            f"Local shard of result_gathered: \n{result_gathered.addressable_shards[0].data}"
+        )
+    elif verbose:
+        print(
+            f"Process {process_id}: "
+            f"Local shard of result_gathered: \n{result_gathered.addressable_shards[0].data}"
+        )
 
     jax.distributed.shutdown()
 
     print(f"Process {process_id}: Shutdown completed")
     sys.exit(0)
 
-def launch_processes(num_processes):
+
+def start_distributed_workers():
+    """
+    Launches multiple distributed worker processes.
+    """
+    total_processes = 4
     processes = []
 
-    for pid in range(num_processes):
-        p = multiprocessing.Process(target=worker_process, args=(pid, num_processes))
-        processes.append(p)
-        p.start()
+    for pid in range(total_processes):
+        process = multiprocessing.Process(
+            target=distributed_worker, args=(pid, total_processes)
+        )
+        processes.append(process)
+        process.start()
 
-    for p in processes:
-        p.join()
+    for process in processes:
+        process.join()
+
 
 if __name__ == "__main__":
-    launch_processes(4)
+    start_distributed_workers()
