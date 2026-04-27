@@ -5,6 +5,8 @@ import jax
 import jax.numpy as jnp
 from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
 
+from visualizer import visualize_with_values
+
 platform = "cpu" if USE_CPU_FALLBACK else "gpu"
 devices = np.array(jax.devices(platform)[:2])
 if len(devices) < 2:
@@ -21,8 +23,9 @@ sharding = NamedSharding(mesh, P("x"))
 print("NamedSharding:", sharding)
 
 # Shard a small array along axis 'x' so each device gets half the rows.
-x = jnp.arange(8 * 4, dtype=jnp.float32).reshape(8, 4)
+x = jnp.arange(4, dtype=jnp.float32).reshape(2, 2)
 x_sharded = jax.device_put(x, sharding)
 
 print("x_sharded.shape:", x_sharded.shape)
 jax.debug.visualize_array_sharding(x_sharded)
+visualize_with_values(x_sharded, title="x_sharded values per device")
