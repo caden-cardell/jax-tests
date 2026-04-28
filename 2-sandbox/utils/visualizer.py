@@ -52,7 +52,10 @@ def visualize_with_values(arr, *, title: str | None = None, console: Console | N
     in a grid that mirrors the sharding. Supports 1-D and 2-D arrays. Replicated shards
     (same index on multiple devices) are coalesced into one panel listing all devices.
     Plain numpy arrays (no sharding) render as a single panel labeled 'host'."""
-    arr_np = np.asarray(arr) if not hasattr(arr, "addressable_shards") else None
+    # Treat as "host" if it's a plain numpy array OR a jax array that hasn't been explicitly
+    # placed on a device (uncommitted). Only deliberately-placed arrays show device labels.
+    is_host = not hasattr(arr, "addressable_shards") or not getattr(arr, "committed", True)
+    arr_np = np.asarray(arr) if is_host else None
     ndim = arr_np.ndim if arr_np is not None else arr.ndim
     if ndim not in (1, 2):
         raise ValueError(f"Only 1-D and 2-D arrays supported, got ndim={ndim}")
@@ -78,7 +81,10 @@ def visualize_with_values(arr, *, title: str | None = None, console: Console | N
     color_for: dict[int, tuple[str, str]] = {}
     for entry in by_pos.values():
         for s in entry:
-            color_for.setdefault(s.device.id, _PALETTE[len(color_for) % len(_PALETTE)])
+            if s.device.id == _HostDevice.id:
+                color_for.setdefault(s.device.id, ("yellow", "black"))
+            else:
+                color_for.setdefault(s.device.id, _PALETTE[len(color_for) % len(_PALETTE)])
 
     grid = Table.grid(padding=(0, 1))
     for _ in range(len(col_keys)):
