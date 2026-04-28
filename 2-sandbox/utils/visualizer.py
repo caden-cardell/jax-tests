@@ -34,20 +34,39 @@ def _format(data: np.ndarray) -> str:
     return np.array2string(data, precision=3, separator=" ", suppress_small=True)
 
 
+class _HostDevice:
+    id = -1
+    def __str__(self) -> str:
+        return "host"
+
+
+class _HostShard:
+    def __init__(self, data: np.ndarray, ndim: int) -> None:
+        self.data = data
+        self.device = _HostDevice()
+        self.index = (slice(None),) * ndim
+
+
 def visualize_with_values(arr, *, title: str | None = None, console: Console | None = None) -> None:
     """Show each addressable shard's values inside a panel labeled with its device, laid out
     in a grid that mirrors the sharding. Supports 1-D and 2-D arrays. Replicated shards
-    (same index on multiple devices) are coalesced into one panel listing all devices."""
-    if arr.ndim not in (1, 2):
-        raise ValueError(f"Only 1-D and 2-D arrays supported, got ndim={arr.ndim}")
+    (same index on multiple devices) are coalesced into one panel listing all devices.
+    Plain numpy arrays (no sharding) render as a single panel labeled 'host'."""
+    arr_np = np.asarray(arr) if not hasattr(arr, "addressable_shards") else None
+    ndim = arr_np.ndim if arr_np is not None else arr.ndim
+    if ndim not in (1, 2):
+        raise ValueError(f"Only 1-D and 2-D arrays supported, got ndim={ndim}")
 
     console = console or Console()
 
     by_pos: dict[tuple[int, ...], list] = {}
-    for s in arr.addressable_shards:
-        by_pos.setdefault(_starts(s.index, arr.ndim), []).append(s)
+    if arr_np is not None:
+        by_pos[(0,) * ndim] = [_HostShard(arr_np, ndim)]
+    else:
+        for s in arr.addressable_shards:
+            by_pos.setdefault(_starts(s.index, ndim), []).append(s)
 
-    if arr.ndim == 1:
+    if ndim == 1:
         row_keys = sorted(by_pos.keys())
         col_keys = [(0,)]
         lookup = lambda r, c: by_pos.get(row_keys[r])
