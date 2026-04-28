@@ -37,15 +37,7 @@ B_replicated = jax.device_put(B, NamedSharding(mesh, P(None, None)))
 visualize_with_values(A_sharded, title="A — sharded on rows: P('x', None)")
 visualize_with_values(B_replicated, title="B — replicated: P(None, None)")
 
-
-# Local shapes inside shard_map: A (2,2) @ B (2,4) -> (2,4). out_specs=P('x', None)
-# stitches the two (2,4) blocks along axis 0 to give the global (4,4) result.
-@partial(shard_map, mesh=mesh, in_specs=(P("x", None), P(None, None)), out_specs=P("x", None))
-def matmul(a, b):
-    return a @ b
-
-
-C = matmul(A_sharded, B_replicated)
+C = A_sharded @ B_replicated
 visualize_with_values(C, title="C = A @ B — sharded on rows: P('x', None)")
 
 console = Console()

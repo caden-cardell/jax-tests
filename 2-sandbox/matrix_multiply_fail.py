@@ -37,23 +37,15 @@ visualize_with_values(A, title="A (4x2) — before placement")
 visualize_with_values(B, title="B (2x4) — before placement")
 
 A_sharded = jax.device_put(A, NamedSharding(mesh, P("x", None)))
-B_sharded = jax.device_put(B, NamedSharding(mesh, P(None, "x")))
+# B_sharded = jax.device_put(B, NamedSharding(mesh, P(None, "x")))
+B_sharded = jax.device_put(B, NamedSharding(mesh, P("x", None)))
 
 visualize_with_values(A_sharded, title="A — sharded on rows: P('x', None)")
 visualize_with_values(B_sharded, title="B — sharded on cols: P(None, 'x')")
 
-
-# Local shapes inside shard_map: A (2,2) @ B (2,2) -> (2,2). That (2,2) is a
-# different block of C on each device. Declaring out_specs=P(None, None) claims
-# the result is replicated — which it isn't — so check_rep raises.
-@partial(shard_map, mesh=mesh, in_specs=(P("x", None), P(None, "x")), out_specs=P(None, None))
-def bad_matmul(a, b):
-    return a @ b
-
-
 console = Console()
 try:
-    result = bad_matmul(A_sharded, B_sharded)
+    result = A_sharded @ B_sharded
     visualize_with_values(result, title="result (should never print)")
 except Exception as e:
     console.print(
