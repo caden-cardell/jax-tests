@@ -1,11 +1,9 @@
-from device_setup import USE_CPU_FALLBACK
+from utils import USE_CPU_FALLBACK, visualize_with_values
 
 import numpy as np
 import jax
 import jax.numpy as jnp
 from jax.sharding import Mesh, NamedSharding, PartitionSpec as P
-
-from visualizer import visualize_with_values
 
 platform = "cpu" if USE_CPU_FALLBACK else "gpu"
 devices = np.array(jax.devices(platform)[:2])
@@ -24,8 +22,8 @@ print("NamedSharding:", sharding)
 
 # Shard a small array along axis 'x' so each device gets half the rows.
 x = jnp.arange(4, dtype=jnp.float32).reshape(2, 2)
-x_sharded = jax.device_put(x, sharding)
+visualize_with_values(x, title="x values before being placed on devices")
 
+x_sharded = jax.device_put(x, sharding)
 print("x_sharded.shape:", x_sharded.shape)
-jax.debug.visualize_array_sharding(x_sharded)
 visualize_with_values(x_sharded, title="x_sharded values per device")
