@@ -86,6 +86,18 @@ def visualize_with_values(arr, *, title: str | None = None, console: Console | N
             else:
                 color_for.setdefault(s.device.id, _PALETTE[len(color_for) % len(_PALETTE)])
 
+    def _panel_for(shard) -> Panel:
+        data = np.asarray(shard.data)
+        accent, bg = color_for[shard.device.id]
+        return Panel(
+            _format(data),
+            title=f"[bold {accent}]{shard.device}[/]",
+            title_align="left",
+            border_style=accent,
+            style=f"on {bg}",
+            expand=False,
+        )
+
     grid = Table.grid(padding=(0, 1))
     for _ in range(len(col_keys)):
         grid.add_column()
@@ -96,19 +108,16 @@ def visualize_with_values(arr, *, title: str | None = None, console: Console | N
             if entry is None:
                 cells.append("")
                 continue
-            data = np.asarray(entry[0].data)
-            label = ", ".join(str(s.device) for s in entry)
-            accent, bg = color_for[entry[0].device.id]
-            cells.append(
-                Panel(
-                    _format(data),
-                    title=f"[bold {accent}]{label}[/]",
-                    title_align="left",
-                    border_style=accent,
-                    style=f"on {bg}",
-                    expand=False,
-                )
-            )
+            # Each device at this position gets its own panel; replicated shards
+            # render side-by-side so the duplicated values are visible.
+            if len(entry) == 1:
+                cells.append(_panel_for(entry[0]))
+            else:
+                sub = Table.grid(padding=(0, 1))
+                for _ in range(len(entry)):
+                    sub.add_column()
+                sub.add_row(*(_panel_for(s) for s in entry))
+                cells.append(sub)
         grid.add_row(*cells)
 
     console.print(Panel(grid, title=title) if title else grid)
