@@ -1,7 +1,8 @@
 """Demo: the working counterpart to matrix_multiply_fail.
 
-Same shapes — A (4, 2) @ B (2, 4) = C (4, 4) — but this time we *replicate* B
-across both devices instead of sharding it. Each device then has:
+Same shapes and values as the failing version — A (4, 2) @ B (2, 4) = C (4, 4) —
+but this time we *replicate* B across both devices instead of sharding it.
+Each device then has:
   • a unique 2-row slice of A
   • the full B
 and computes its 2 rows of C independently. No collectives needed."""
@@ -24,14 +25,17 @@ devices = np.array(jax.devices(platform)[:2])
 mesh = Mesh(devices, ("x",))
 
 A = jnp.arange(8, dtype=jnp.float32).reshape(4, 2)
-B = jnp.arange(8, dtype=jnp.float32).reshape(2, 4)
+B = jnp.arange(8, dtype=jnp.float32).reshape(2, 4) + 10
+
+visualize_with_values(A, title="A (4x2) — before placement")
+visualize_with_values(B, title="B (2x4) — before placement")
 
 # A: rows split across devices. B: fully replicated (no mesh axis in spec).
 A_sharded = jax.device_put(A, NamedSharding(mesh, P("x", None)))
 B_replicated = jax.device_put(B, NamedSharding(mesh, P(None, None)))
 
-visualize_with_values(A_sharded, title="A (4x2) — sharded on rows: P('x', None)")
-visualize_with_values(B_replicated, title="B (2x4) — replicated: P(None, None)")
+visualize_with_values(A_sharded, title="A — sharded on rows: P('x', None)")
+visualize_with_values(B_replicated, title="B — replicated: P(None, None)")
 
 
 # Local shapes inside shard_map: A (2,2) @ B (2,4) -> (2,4). out_specs=P('x', None)
